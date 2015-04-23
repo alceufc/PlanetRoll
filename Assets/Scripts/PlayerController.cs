@@ -3,49 +3,66 @@ using System.Collections;
 
 public class PlayerController : MonoBehaviour {
 	public float thrust;
-	public float playerMass;
-	public float gravity;
 	public float brakeFactor;
+	public float jumpForce;
 
+	private bool isTouchingGround;
 	public GameObject planet;
 	public GameObject camera;
 
 	private Rigidbody rb;
 
-	//private Vector3 lastPosition;
-
 	// Use this for initialization
 	void Start () {
 		rb = GetComponent<Rigidbody>();
-		//lastPosition = transform.position;
+		isTouchingGround = false;
 	}
 
 	// Update is called once per frame
 	void FixedUpdate () {
-		float moveHorizontal = Input.GetAxis("Horizontal");
-		float moveVertical = Input.GetAxis("Vertical");
+		if (isTouchingGround) {
+			ApplyControlForces();
+		}
+	}
 
+	void ApplyControlForces () {
+		float moveHorizontal = Input.GetAxis ("Horizontal");
+		float moveVertical = Input.GetAxis ("Vertical");
+		
 		Vector3 playerVector = (transform.position - planet.transform.position).normalized;
 		Vector3 cameraVector = (camera.transform.position - planet.transform.position).normalized;
-		Vector3 forceNormal = Vector3.Cross (playerVector, cameraVector);
-		Vector3 forceVector = Vector3.Cross (playerVector, forceNormal);
-
-		Debug.DrawRay (transform.position, forceVector*3, Color.green);
+		Vector3 forceNormal = Vector3.Cross (playerVector, cameraVector).normalized;
+		Vector3 forceForward = Vector3.Cross (playerVector, forceNormal).normalized;
+		
+		
 		if (moveVertical < 0.0) {
 			// Brake.
 			Vector3 velocity = rb.velocity.normalized;
 			float velocityMag = velocity.magnitude;
-			if (velocityMag > 0.0){
+			if (velocityMag > 0.0) {
 				rb.AddForce (-velocity.normalized * velocityMag * velocityMag * brakeFactor);
 			}
-		} else if (moveVertical > 0.0) {
+		} else {
 			// Apply Thurst.
-			rb.AddForce (moveVertical*forceVector*thrust);
+			Vector3 forceVector = (forceForward * moveVertical - forceNormal * moveHorizontal).normalized;
+			Debug.DrawRay (transform.position, forceVector * 3, Color.green);
+			rb.AddForce (forceVector * thrust);
 		}
+		
+		if (Input.GetKeyDown ("space")) {
+			rb.AddForce (playerVector * jumpForce, ForceMode.Impulse);
+		}
+	}
 
-		rb.AddForce (-moveHorizontal*forceNormal*thrust);
+	void OnCollisionEnter(Collision other) {
+		if (other.gameObject.CompareTag ("Ground")) {
+			isTouchingGround = true;
+		}
+	}
 
-		// Gravity.
-		rb.AddForce (-playerVector*playerMass*gravity);
-	}	
+	void OnCollisionExit(Collision other) {
+		if (other.gameObject.CompareTag ("Ground")) {
+			isTouchingGround = false;
+		}
+	}
 }
