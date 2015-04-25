@@ -49,9 +49,25 @@ public class PlayerController : MonoBehaviour {
 			rb.AddForce (forceVector * thrust);
 		}
 		
-		if (Input.GetKeyDown ("space")) {
-			rb.AddForce (playerVector * jumpForce, ForceMode.Impulse);
+		if (!Input.GetKey ("space")) {
+			// Add a centripetal force
+			float radius = planet.GetComponent<SphereCollider>().radius;
+
+			//Vector3 normalCameraDirection = cameraDirection - Vector3.Dot (cameraDirection, playerVector) * playerVector;
+			Vector3 tangentialSpeed = rb.velocity - Vector3.Dot (rb.velocity, playerVector) * playerVector;
+			//float speed = rb.velocity.magnitude;
+			float speed = tangentialSpeed.magnitude;
+			rb.AddForce ( -playerVector*speed*speed/radius, ForceMode.Force);
 		}
+
+		if (Input.GetKeyDown ("backspace")) {
+			gameObject.SetActive(false);
+		}
+
+
+//		if (Input.GetKeyDown ("space")) {
+//			rb.AddForce (playerVector * jumpForce, ForceMode.Impulse);
+//		}
 	}
 
 	void OnCollisionEnter(Collision other) {
